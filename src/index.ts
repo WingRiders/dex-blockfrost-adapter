@@ -45,9 +45,20 @@ export class WingRidersAdapter {
    */
   public async loadLpAddressMap() {
     // fetch all addresses, where the LP validity token is available
-    const addresses = await this.api.assetsAddresses(LIQUIDITY_POOL_VALIDITY_ASSET, {
-      count: 1000,
-    });
+    let addresses: { address: string; quantity: string }[] = [];
+    let page = 1;
+    while (page < 20) {
+      // at most 2000
+      const chunk = await this.api.assetsAddresses(LIQUIDITY_POOL_VALIDITY_ASSET, {
+        count: 100,
+        page,
+      });
+      addresses = addresses.concat(chunk);
+      if (chunk.length < 100) {
+        break;
+      }
+      page += 1;
+    }
     const lpAddressMap: LpAddressMap = {};
     await Promise.all(
       addresses.map(async ({ address }) => {
@@ -56,6 +67,7 @@ export class WingRidersAdapter {
         await Promise.all(
           utxos.map(async (utxo) => {
             if (!utxo.data_hash) {
+              // not a pool address without
               return;
             }
 
@@ -77,6 +89,18 @@ export class WingRidersAdapter {
     );
     this.lpAddressMap = lpAddressMap;
     return lpAddressMap;
+  }
+
+  public async getAdaPrice(unit: string): Promise<number | undefined> {
+    const lpState = await this.getLiquidityPoolState("lovelace", unit);
+    if (!lpState) {
+      return;
+    }
+    const token = await this.api.assetsById(unit);
+    const decimals = token?.metadata?.decimals || 0;
+
+    const price = (Number(lpState.quantityA) * Math.pow(10, decimals - 6)) / Number(lpState.quantityB);
+    return price;
   }
 
   public async getLiquidityPoolState(unitA: string, unitB: string) {

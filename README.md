@@ -13,7 +13,7 @@ Please add to your `.npmrc`
 Afterwards you will be able to install the package with:
 
 ```bash
-npm install @wingriders/dex-blockfrost-adapter
+npm install @wingriders/dex-blockfrost-adapter @dcspark/cardano-multiplatform-lib-nodejs
 ```
 
 ## Usage
@@ -28,7 +28,7 @@ A very simple use-case when using node js:
  * in the test folder. Alternatively you can fetch your own running
  * $ npm run scripts:lpmap
  */
-const addressMap = require("./test/lpmap.mainnet.json");
+const addressMap = require("./test/lpmap.mainnet.20221013.json");
 
 /**
  * Require or import the package. The common js package is built against
@@ -56,6 +56,16 @@ const adaWrtLP = addressMap["dec347c549f618e80d97682b5b4c6985256503bbb3f3955831f
  * Unit - is a term from blockfrost, the concatenated `policyId <> assetName` encoded as hex
  */
 console.log(await adapter.getLiquidityPoolState(adaWrtLP.unitA, adaWrtLP.unitB));
+
+/**
+ * If you are only interested in the mid ADA price based on the ADA <> MELD pool
+ * the parameter is the unit similar to above. E.g. MELD asset:
+ * https://cardanoscan.io/token/6ac8ef33b510ec004fe11585f7c5a9f0c07f0c23428ab4f29c1d7d104d454c44
+ *
+ * !Warning! The actual swap price will differ because it depends on the swapped amount
+ *           and the depth of the liquidity pool.
+ */
+console.log(await adapter.getAdaPrice('6ac8ef33b510ec004fe11585f7c5a9f0c07f0c23428ab4f29c1d7d104d454c44))
 ```
 
 Should give you something similar to:
@@ -70,9 +80,12 @@ Should give you something similar to:
   quantityA: '1955086131373',
   quantityB: '5666239873301'
 }
+
+0.052060335367318265
 ```
 
 ![WRT pool state](./img/lpstate.png)
+![MELD ada price](./img/assetstate.png)
 
 ## Known issues
 
