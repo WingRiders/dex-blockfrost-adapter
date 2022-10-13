@@ -65,7 +65,7 @@ console.log(await adapter.getLiquidityPoolState(adaWrtLP.unitA, adaWrtLP.unitB))
  * !Warning! The actual swap price will differ because it depends on the swapped amount
  *           and the depth of the liquidity pool.
  */
-console.log(await adapter.getAdaPrice('6ac8ef33b510ec004fe11585f7c5a9f0c07f0c23428ab4f29c1d7d104d454c44))
+console.log(await adapter.getAdaPrice("6ac8ef33b510ec004fe11585f7c5a9f0c07f0c23428ab4f29c1d7d104d454c44"));
 ```
 
 Should give you something similar to:

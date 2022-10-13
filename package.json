@@ -1,6 +1,6 @@
 {
   "name": "@wingriders/dex-blockfrost-adapter",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "module": "dist/index.esm.js",
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",
@@ -14,12 +14,12 @@
     "scripts:lpmap": "node scripts/fetchLpAddressMap.js"
   },
   "peerDependencies": {
-    "@blockfrost/blockfrost-js": "^5.0.0",
     "@dcspark/cardano-multiplatform-lib-browser": "^3.0.1",
-    "@dcspark/cardano-multiplatform-lib-nodejs": "^3.0.1",
-    "@wingriders/dex-serializer": "^0.1.0"
+    "@dcspark/cardano-multiplatform-lib-nodejs": "^3.0.1"
   },
   "dependencies": {
+    "@blockfrost/blockfrost-js": "^5.0.0",
+    "@wingriders/dex-serializer": "^0.1.0",
     "sha3": "^2.1.4"
   },
   "devDependencies": {
