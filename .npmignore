@@ -1,0 +1,11 @@
+config/
+test/
+img/
+src/
+.github
+.editorconfig
+.env*
+.prettierrc.yaml
+build.js
+jest.config.js
+tsconfig.json

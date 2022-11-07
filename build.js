@@ -1,7 +1,7 @@
 const { build } = require("esbuild");
 const { Generator } = require("npm-dts");
 const resolve = require("esbuild-plugin-resolve");
-const { peerDependencies } = require("./package.json");
+const { dependencies, peerDependencies } = require("./package.json");
 
 const esbuildPlugin = require("node-stdlib-browser/helpers/esbuild/plugin");
 const stdLibBrowser = require("node-stdlib-browser");
@@ -10,7 +10,7 @@ const entryFile = "src/index.ts";
 const shared = {
   entryPoints: [entryFile],
   bundle: true,
-  external: Object.keys(peerDependencies),
+  external: Object.keys(peerDependencies).concat(Object.keys(dependencies)),
   inject: [require.resolve("node-stdlib-browser/helpers/esbuild/shim")],
   define: {
     Buffer: "Buffer",

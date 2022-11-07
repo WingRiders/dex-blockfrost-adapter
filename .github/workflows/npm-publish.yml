@@ -18,6 +18,8 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npm test
+        env:
+          BLOCKFROST_PROJECT_ID: ${{secrets.BLOCKFROST_PROJECT_ID}}
 
   publish-npm:
     needs: build
