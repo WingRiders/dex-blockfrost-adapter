@@ -1,6 +1,6 @@
 {
   "name": "@wingriders/dex-blockfrost-adapter",
-  "version": "0.1.3",
+  "version": "0.2.0",
   "module": "dist/index.esm.js",
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",
