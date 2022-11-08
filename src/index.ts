@@ -1,9 +1,4 @@
-import { BlockFrostAPI } from "@blockfrost/blockfrost-js";
-import {
-  BigNum,
-  encode_json_str_to_plutus_datum,
-  PlutusDatumSchema,
-} from "@dcspark/cardano-multiplatform-lib-browser";
+import { BigNum } from "@dcspark/cardano-multiplatform-lib-browser";
 import { LiquidityPoolDatum, value_get_assetclass } from "@wingriders/dex-serializer";
 import { assetClassFromUnit, computeLpHash } from "./utils";
 import {
@@ -13,6 +8,7 @@ import {
   LIQUIDITY_POOL_VALIDITY_ASSET,
 } from "./constants";
 import { LpAddressMap, LpState } from "./types";
+import { BlockFrostAPI } from "./blockfrost";
 
 // LP addresses by liquidity pool hash ID
 
@@ -26,8 +22,13 @@ export class WingRidersAdapter {
   private lpAddressMap: LpAddressMap;
 
   constructor({ projectId, lpAddressMap }: AdapterOptions) {
+    const network = ["mainnet", "preprod"].filter((network) => projectId.startsWith(network))[0];
+    if (!network) {
+      throw new Error("Only preprod and mainnet are supported");
+    }
     this.api = new BlockFrostAPI({
       projectId,
+      network,
     });
     this.lpAddressMap = lpAddressMap ?? {};
   }
@@ -159,23 +160,12 @@ export class WingRidersAdapter {
     return lp;
   }
 
-  public _getApi() {
-    return this.api;
-  }
-
   private async getLpDatum(dataHash: string): Promise<LiquidityPoolDatum | undefined> {
     const data = await this.api.scriptsDatum(dataHash);
 
-    // NOTE: this returns the json format, but we would prefer the CBOR
-    // to not lose any information about the structure
-    const plutusData = encode_json_str_to_plutus_datum(
-      JSON.stringify(data.json_value),
-      PlutusDatumSchema.DetailedSchema
-    );
-
     let lp: LiquidityPoolDatum;
     try {
-      lp = LiquidityPoolDatum.from_hex(Buffer.from(plutusData.to_bytes()).toString("hex"));
+      lp = LiquidityPoolDatum.from_hex(data.cbor);
     } catch (err) {
       // corrupt datum on a pool address
       return;
