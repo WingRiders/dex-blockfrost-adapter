@@ -10,18 +10,15 @@ const entryFile = "src/index.ts";
 const shared = {
   entryPoints: [entryFile],
   bundle: true,
-  external: Object.keys(peerDependencies).concat(Object.keys(dependencies)),
-  inject: [require.resolve("node-stdlib-browser/helpers/esbuild/shim")],
-  define: {
-    Buffer: "Buffer",
-  },
-  plugins: [esbuildPlugin(stdLibBrowser)],
+  external: Object.keys(peerDependencies),
+  plugins: [],
 };
 
 build({
   ...shared,
   format: "cjs",
   outfile: "dist/index.js",
+  external: shared.external.concat(Object.keys(dependencies)),
   plugins: [
     ...shared.plugins,
     resolve({
@@ -34,6 +31,11 @@ build({
   ...shared,
   outfile: "dist/index.esm.js",
   format: "esm",
+  inject: [require.resolve("node-stdlib-browser/helpers/esbuild/shim")],
+  define: {
+    Buffer: "Buffer",
+  },
+  plugins: [...shared.plugins, esbuildPlugin(stdLibBrowser)],
 });
 
 new Generator({
