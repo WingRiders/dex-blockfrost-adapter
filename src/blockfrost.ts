@@ -183,8 +183,29 @@ export class BlockFrostAPI {
   }
 
   public async assetsById(asset: string): Promise<Asset> {
-    const res = await this.api.get(`/assets/${asset}`);
-    return res.data;
+    if (asset !== "lovelace") {
+      const res = await this.api.get(`/assets/${asset}`);
+      return res.data;
+    } else {
+      return {
+        asset: "",
+        policy_id: "",
+        asset_name: "",
+        fingerprint: "",
+        initial_mint_tx_hash: "",
+        metadata: {
+          name: "ADA",
+          decimals: 6,
+          description: "ADA",
+          logo: "",
+          ticker: "ADA",
+          url: "https://cardano.org",
+        },
+        mint_or_burn_count: 0,
+        onchain_metadata: null,
+        quantity: "",
+      };
+    }
   }
 
   public async scriptsDatum(datumHash: string): Promise<{ cbor: string }> {

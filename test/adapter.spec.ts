@@ -1,4 +1,4 @@
-import { WingRidersAdapter } from "../src";
+import { WingRidersAdapter } from "../src/adapter";
 import lpAddressMap from "./lpmap.mainnet.json";
 import * as dotenv from "dotenv";
 dotenv.config();

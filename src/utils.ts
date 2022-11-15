@@ -1,5 +1,6 @@
 import { AssetClass } from "@wingriders/dex-serializer";
 import { SHA3 } from "sha3";
+import { SWAP_FEE_IN_BASIS } from "./constants";
 
 function sha3(hex: string) {
   const hash = new SHA3(256);
@@ -26,4 +27,25 @@ export function assetClassFromUnit(a: string) {
     const assetNameHex = a.substring(56);
     return AssetClass.from_hex(policyIdHex, assetNameHex);
   }
+}
+
+export function bigintDivCeil(a: bigint, b: bigint) {
+  return (a + b - BigInt(1)) / b;
+}
+
+export function computeExpectedRawSwapAmount({
+  lpFromRawAmount,
+  lpToRawAmount,
+  swapRawAmount,
+}: {
+  lpFromRawAmount: bigint;
+  lpToRawAmount: bigint;
+  swapRawAmount: bigint;
+}) {
+  const swapFee = bigintDivCeil(swapRawAmount * BigInt(SWAP_FEE_IN_BASIS), BigInt(10000));
+
+  const expectedRawAmount =
+    lpToRawAmount - bigintDivCeil(lpFromRawAmount * lpToRawAmount, lpFromRawAmount + swapRawAmount - swapFee);
+
+  return expectedRawAmount;
 }
