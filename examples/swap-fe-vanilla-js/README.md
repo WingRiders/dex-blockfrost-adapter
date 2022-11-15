@@ -104,6 +104,10 @@ based on the exchange ratio at the given point in time the swap is **fulfilled**
 
 Where `SLIPPAGE_IN_BASIS = "50"`, which means we are OK `0.5 %` slippage off the current price.
 
+Up to this point the UI should look like:
+
+![screenshot](./screenshot.png)
+
 ## Building the Swap request
 
 With the wallet connection, wallet owner's address and exchange rate estimate we have now everything to build a swap request datum:
