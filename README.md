@@ -81,8 +81,20 @@ Should give you something similar to:
 ![WRT pool state](./img/lpstate.png)
 ![MELD ada price](./img/assetstate.png)
 
+## Examples
+
+The `examples` folder contains additional examples how to set up bundling to interact also with frontend
+applications
+
+- **[Current Price](./examples/price-fe-vanilla-js/README.md)** - Example bundling `vite` and vanilla JS to show a token price
+  on a webpage. The example intentionally does not use any frontend framework.
+- **[Swap](./examples/swap-fe-vanilla-js/README.md)** - Example combining multiple aspects of interacting with WingRiders
+  smart contracts: getting liquidity pool states, computing expected swap quantities, building a tx on the frontend
+  using `lucid` and submitting a swap request to WingRiders.
+
 ## Known issues
 
+- only mainnet is supported fully, proprod support is planned
 - serialization lib conflicting types between nodejs and browser versions
 
 ## Development

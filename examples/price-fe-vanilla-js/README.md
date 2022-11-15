@@ -1,13 +1,14 @@
-# Example - Frontend with vanilla js
+# Example - Price frontend with vanilla js
 
 Example project using vite and vanilla js to use the dex adapter
 to fetch the price of the DRIP token.
 
 ## Running locally
 
-First copy the `.env.example` and fill in your Blockfrost project ID. Then:
+First copy the `.env.example` to `.env` and fill in your Blockfrost project ID. Then:
 
 ```sh
+npm install
 npm run dev
 ```
 
