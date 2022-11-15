@@ -11,7 +11,11 @@ const shared = {
   entryPoints: [entryFile],
   bundle: true,
   external: Object.keys(peerDependencies),
-  plugins: [],
+  inject: [require.resolve("node-stdlib-browser/helpers/esbuild/shim")],
+  define: {
+    Buffer: "Buffer",
+  },
+  plugins: [esbuildPlugin(stdLibBrowser)],
 };
 
 build({
@@ -31,11 +35,7 @@ build({
   ...shared,
   outfile: "dist/index.esm.js",
   format: "esm",
-  inject: [require.resolve("node-stdlib-browser/helpers/esbuild/shim")],
-  define: {
-    Buffer: "Buffer",
-  },
-  plugins: [...shared.plugins, esbuildPlugin(stdLibBrowser)],
+  minify: true,
 });
 
 new Generator({
