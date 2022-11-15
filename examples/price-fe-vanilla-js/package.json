@@ -1,0 +1,21 @@
+{
+  "name": "price-fe-vanilla-js",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "typescript": "^4.6.4",
+    "vite": "^3.2.3",
+    "vite-plugin-top-level-await": "^1.2.1",
+    "vite-plugin-wasm": "^3.1.0"
+  },
+  "dependencies": {
+    "@dcspark/cardano-multiplatform-lib-browser": "^3.1.0",
+    "@wingriders/dex-blockfrost-adapter": "^0.2.0"
+  }
+}
