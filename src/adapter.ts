@@ -42,9 +42,11 @@ export class WingRidersAdapter {
    * querying just based on the script credentials. Since WR LP have
    * different staking keys assigned to them, all ADA<>Token pools will
    * have a different address
+   * @param slowMode true to fetch data in parallel or false otherwise. In parallel it might break the free tier of blockfrost api limit
    * @returns
    */
-  public async loadLpAddressMap() {
+  public async loadLpAddressMap(slowMode: boolean = false) {
+    console.log(`loadLpAddressMap: starting in ${(slowMode ? 'slow mode' : 'fast mode')}`)
     // fetch all addresses, where the LP validity token is available
     let addresses: { address: string; quantity: string }[] = [];
     let page = 1;
@@ -61,33 +63,62 @@ export class WingRidersAdapter {
       page += 1;
     }
     const lpAddressMap: LpAddressMap = {};
-    await Promise.all(
-      addresses.map(async ({ address }) => {
+    if(!slowMode) {
+      await Promise.all(
+        addresses.map(async ({ address }) => {
+          // Find all UTxOs on the addresses and verify if they are actual liquidity pools
+          const utxos = await this.api.addressesUtxosAssetAll(address, LIQUIDITY_POOL_VALIDITY_ASSET);
+          await Promise.all(
+            utxos.map(async (utxo) => {
+              if (!utxo.data_hash) {
+                // not a pool address without
+                return;
+              }
+
+              const lpDatum = await this.getLpDatum(utxo.data_hash);
+              if (!lpDatum) {
+                return;
+              }
+
+              const lpHash = computeLpHash(lpDatum.assetA, lpDatum.assetB);
+              lpAddressMap[lpHash] = {
+                address,
+                unitA: lpDatum.assetA.to_subject() || "lovelace",
+                unitB: lpDatum.assetB.to_subject(),
+                unitLp: `${LIQUIDITY_POLICY_ID}${lpHash}`,
+              };
+            })
+          );
+        })
+      );     
+    }
+    else {
+      for(let i = 0; i < addresses.length; i++) {
+        const { address } = addresses[i];
         // Find all UTxOs on the addresses and verify if they are actual liquidity pools
         const utxos = await this.api.addressesUtxosAssetAll(address, LIQUIDITY_POOL_VALIDITY_ASSET);
-        await Promise.all(
-          utxos.map(async (utxo) => {
-            if (!utxo.data_hash) {
-              // not a pool address without
-              return;
-            }
+        for(let j = 0; j < utxos.length; j++) {
+          const utxo = utxos[j];
+          if (!utxo.data_hash) {
+            // not a pool address without
+            return;
+          }
 
-            const lpDatum = await this.getLpDatum(utxo.data_hash);
-            if (!lpDatum) {
-              return;
-            }
+          const lpDatum = await this.getLpDatum(utxo.data_hash);
+          if (!lpDatum) {
+            return;
+          }
 
-            const lpHash = computeLpHash(lpDatum.assetA, lpDatum.assetB);
-            lpAddressMap[lpHash] = {
-              address,
-              unitA: lpDatum.assetA.to_subject() || "lovelace",
-              unitB: lpDatum.assetB.to_subject(),
-              unitLp: `${LIQUIDITY_POLICY_ID}${lpHash}`,
-            };
-          })
-        );
-      })
-    );
+          const lpHash = computeLpHash(lpDatum.assetA, lpDatum.assetB);
+          lpAddressMap[lpHash] = {
+            address,
+            unitA: lpDatum.assetA.to_subject() || "lovelace",
+            unitB: lpDatum.assetB.to_subject(),
+            unitLp: `${LIQUIDITY_POLICY_ID}${lpHash}`,
+          };
+        }
+      }
+    }
     this.lpAddressMap = lpAddressMap;
     return lpAddressMap;
   }
