@@ -37,6 +37,7 @@ const wr = require("@wingriders/dex-blockfrost-adapter");
 const adapter = new wr.WingRidersAdapter({
   projectId: "mainnetYOUR_PROJECT_ID",
   lpAddressMap: addressMap,
+  poolType: wr.PoolType.CONSTANT_PRODUCT,
 });
 
 /**

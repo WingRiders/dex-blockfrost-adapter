@@ -1,6 +1,8 @@
 import { AssetClass } from "@wingriders/dex-serializer";
 import { SHA3 } from "sha3";
-import { SWAP_FEE_IN_BASIS } from "./constants";
+import { STABLESWAP_A_PARAM, STABLESWAP_SWAP_FEE_IN_BASIS, SWAP_FEE_IN_BASIS } from "./constants";
+import { findD, findY } from "./stableswap";
+import BigNumber from "bignumber.js";
 
 function sha3(hex: string) {
   const hash = new SHA3(256);
@@ -46,6 +48,32 @@ export function computeExpectedRawSwapAmount({
 
   const expectedRawAmount =
     lpToRawAmount - bigintDivCeil(lpFromRawAmount * lpToRawAmount, lpFromRawAmount + swapRawAmount - swapFee);
+
+  return expectedRawAmount;
+}
+
+export function computeExpectedStsRawSwapAmount({
+  lpFromRawAmount,
+  lpToRawAmount,
+  swapRawAmount,
+}: {
+  lpFromRawAmount: bigint;
+  lpToRawAmount: bigint;
+  swapRawAmount: bigint;
+}) {
+  const swapFee = bigintDivCeil(swapRawAmount * BigInt(STABLESWAP_SWAP_FEE_IN_BASIS), BigInt(10000));
+  const newLpFromReserves = lpFromRawAmount - swapFee + swapRawAmount;
+  const newLpToReserves = findY({
+    a: new BigNumber(STABLESWAP_A_PARAM),
+    x: new BigNumber(newLpFromReserves.toString()),
+    d: findD({
+      a: new BigNumber(STABLESWAP_A_PARAM),
+      x: new BigNumber(lpFromRawAmount.toString()),
+      y: new BigNumber(lpToRawAmount.toString()),
+    }),
+  });
+
+  const expectedRawAmount = lpToRawAmount - BigInt(newLpToReserves.toString());
 
   return expectedRawAmount;
 }

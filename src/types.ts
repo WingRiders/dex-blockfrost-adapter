@@ -17,3 +17,8 @@ export type LpAddressMap = Record<
     unitLp: string; // lp token subject
   }
 >;
+
+export enum PoolType {
+  CONSTANT_PRODUCT = "constantProduct",
+  STABLESWAP = "stableswap",
+}

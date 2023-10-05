@@ -1,13 +1,20 @@
 import { BigNum } from "@dcspark/cardano-multiplatform-lib-browser";
 import { LiquidityPoolDatum, value_get_assetclass } from "@wingriders/dex-serializer";
-import { assetClassFromUnit, computeLpHash, computeExpectedRawSwapAmount } from "./utils";
+import {
+  assetClassFromUnit,
+  computeLpHash,
+  computeExpectedRawSwapAmount,
+  computeExpectedStsRawSwapAmount,
+} from "./utils";
 import {
   INT_MAX_64,
   LIQUIDITY_POLICY_ID,
   LIQUIDITY_POOL_MIN_ADA,
   LIQUIDITY_POOL_VALIDITY_ASSET,
+  STABLESWAP_LIQUIDITY_POLICY_ID,
+  STABLESWAP_LIQUIDITY_POOL_VALIDITY_ASSET,
 } from "./constants";
-import { LpAddressMap, LpState } from "./types";
+import { LpAddressMap, LpState, PoolType } from "./types";
 import { BlockFrostAPI } from "./blockfrost";
 
 // LP addresses by liquidity pool hash ID
@@ -15,13 +22,34 @@ import { BlockFrostAPI } from "./blockfrost";
 type AdapterOptions = {
   projectId: string; // see: https://blockfrost.io
   lpAddressMap?: LpAddressMap;
+  poolType: PoolType;
+};
+
+type LoadLpAddressMapOptions = {
+  slowMode: boolean;
+};
+
+export const dexTokenPolicy = {
+  [PoolType.CONSTANT_PRODUCT]: LIQUIDITY_POLICY_ID,
+  [PoolType.STABLESWAP]: STABLESWAP_LIQUIDITY_POLICY_ID,
+};
+
+export const dexValidityTokens = {
+  [PoolType.CONSTANT_PRODUCT]: LIQUIDITY_POOL_VALIDITY_ASSET,
+  [PoolType.STABLESWAP]: STABLESWAP_LIQUIDITY_POOL_VALIDITY_ASSET,
+};
+
+export const expectedRawSwapAmount = {
+  [PoolType.CONSTANT_PRODUCT]: computeExpectedRawSwapAmount,
+  [PoolType.STABLESWAP]: computeExpectedStsRawSwapAmount,
 };
 
 export class WingRidersAdapter {
   private api: BlockFrostAPI;
   private lpAddressMap: LpAddressMap;
+  private poolType: PoolType;
 
-  constructor({ projectId, lpAddressMap }: AdapterOptions) {
+  constructor({ projectId, lpAddressMap, poolType }: AdapterOptions) {
     const network = ["mainnet", "preprod"].filter((network) => projectId.startsWith(network))[0];
     if (!network) {
       throw new Error("Only preprod and mainnet are supported");
@@ -31,6 +59,7 @@ export class WingRidersAdapter {
       network,
     });
     this.lpAddressMap = lpAddressMap ?? {};
+    this.poolType = poolType;
   }
 
   /**
@@ -42,15 +71,16 @@ export class WingRidersAdapter {
    * querying just based on the script credentials. Since WR LP have
    * different staking keys assigned to them, all ADA<>Token pools will
    * have a different address
+   * @param slowMode True to fetch data sequentially. False to fetch data in parallel. Parallel often does not work with the free tier of the blockfrost api
    * @returns
    */
-  public async loadLpAddressMap() {
+  public async loadLpAddressMap({ slowMode }: LoadLpAddressMapOptions | undefined = { slowMode: false }) {
     // fetch all addresses, where the LP validity token is available
     let addresses: { address: string; quantity: string }[] = [];
     let page = 1;
     while (page < 20) {
       // at most 2000
-      const chunk = await this.api.assetsAddresses(LIQUIDITY_POOL_VALIDITY_ASSET, {
+      const chunk = await this.api.assetsAddresses(dexValidityTokens[this.poolType], {
         count: 100,
         page,
       });
@@ -61,35 +91,45 @@ export class WingRidersAdapter {
       page += 1;
     }
     const lpAddressMap: LpAddressMap = {};
-    await Promise.all(
-      addresses.map(async ({ address }) => {
+    if (slowMode) {
+      for (const { address } of addresses) {
         // Find all UTxOs on the addresses and verify if they are actual liquidity pools
-        const utxos = await this.api.addressesUtxosAssetAll(address, LIQUIDITY_POOL_VALIDITY_ASSET);
-        await Promise.all(
-          utxos.map(async (utxo) => {
-            if (!utxo.data_hash) {
-              // not a pool address without
-              return;
-            }
-
-            const lpDatum = await this.getLpDatum(utxo.data_hash);
-            if (!lpDatum) {
-              return;
-            }
-
-            const lpHash = computeLpHash(lpDatum.assetA, lpDatum.assetB);
-            lpAddressMap[lpHash] = {
-              address,
-              unitA: lpDatum.assetA.to_subject() || "lovelace",
-              unitB: lpDatum.assetB.to_subject(),
-              unitLp: `${LIQUIDITY_POLICY_ID}${lpHash}`,
-            };
-          })
-        );
-      })
-    );
+        const utxos = await this.api.addressesUtxosAssetAll(address, dexValidityTokens[this.poolType]);
+        for (const utxo of utxos) {
+          await this.getLpMapEntry(address, utxo.data_hash, lpAddressMap);
+        }
+      }
+    } else {
+      await Promise.all(
+        addresses.map(async ({ address }) => {
+          // Find all UTxOs on the addresses and verify if they are actual liquidity pools
+          const utxos = await this.api.addressesUtxosAssetAll(address, dexValidityTokens[this.poolType]);
+          await Promise.all(utxos.map((utxo) => this.getLpMapEntry(address, utxo.data_hash, lpAddressMap)));
+        })
+      );
+    }
     this.lpAddressMap = lpAddressMap;
     return lpAddressMap;
+  }
+
+  private async getLpMapEntry(address: string, data_hash: string, lpAddressMap: LpAddressMap) {
+    if (!data_hash) {
+      // not a pool address without
+      return;
+    }
+
+    const lpDatum = await this.getLpDatum(data_hash);
+    if (!lpDatum) {
+      return;
+    }
+
+    const lpHash = computeLpHash(lpDatum.assetA, lpDatum.assetB);
+    lpAddressMap[lpHash] = {
+      address,
+      unitA: lpDatum.assetA.to_subject() || "lovelace",
+      unitB: lpDatum.assetB.to_subject(),
+      unitLp: `${dexTokenPolicy[this.poolType]}${lpHash}`,
+    };
   }
 
   public async getAdaPrice(unit: string): Promise<number | undefined> {
@@ -125,7 +165,7 @@ export class WingRidersAdapter {
         );
 
         // check if there is a validity token and a datum
-        if (amountByUnit[LIQUIDITY_POOL_VALIDITY_ASSET] !== "1" || !utxo.data_hash) {
+        if (amountByUnit[dexValidityTokens[this.poolType]] !== "1" || !utxo.data_hash) {
           return;
         }
 
@@ -140,7 +180,7 @@ export class WingRidersAdapter {
         const treasuryB = value_get_assetclass(lpDatum.treasury, lpDatum.assetB);
         const poolMinAda = BigNum.from_str(LIQUIDITY_POOL_MIN_ADA);
 
-        const additionalA = assetA.isAda ? treasuryA.checked_add(poolMinAda) : treasuryA;
+        const additionalA = assetA.isAda || assetB.isAda ? treasuryA.checked_add(poolMinAda) : treasuryA;
 
         // compute the pool properties
         lp = {
@@ -197,7 +237,7 @@ export class WingRidersAdapter {
       this.api.assetsById(unitTo),
     ]);
 
-    const swapRawAmount = BigInt((amountFrom * Math.pow(10, tokenFrom.metadata.decimals || 0)).toFixed(0));
+    const swapRawAmount = BigInt((amountFrom * Math.pow(10, tokenFrom.metadata?.decimals || 0)).toFixed(0));
 
     const [lpFromRawAmount, lpToRawAmount] = (
       unitFrom === lpState.unitA
@@ -205,12 +245,16 @@ export class WingRidersAdapter {
         : [lpState.quantityB, lpState.quantityA]
     ).map((amount) => BigInt(amount));
 
-    const expectedRawAmount = computeExpectedRawSwapAmount({ lpFromRawAmount, lpToRawAmount, swapRawAmount });
+    const expectedRawAmount = expectedRawSwapAmount[this.poolType]({
+      lpFromRawAmount,
+      lpToRawAmount,
+      swapRawAmount,
+    });
 
     return {
       swapRawAmount: swapRawAmount.toString(),
       expectedRawAmount: expectedRawAmount.toString(10),
-      expectedAmount: Number(expectedRawAmount) / Math.pow(10, tokenTo.metadata.decimals || 0),
+      expectedAmount: Number(expectedRawAmount) / Math.pow(10, tokenTo.metadata?.decimals || 0),
     };
   }
 }
