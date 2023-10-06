@@ -1,4 +1,6 @@
-# EXPERIMENTAL WingRiders Blockfrost adapter
+<p align="center"><img src="https://assets.wingriders.com/wingriders_logo.png" /></p>
+
+# `@wingriders/dex-blockfrost-adapter`
 
 Adapter to get the WingRiders state using blockfrost. For deserialization of the data it uses [@wingriders/dex-serializer](https://github.com/WingRiders/dex-serializer) library.
 
@@ -37,7 +39,7 @@ const wr = require("@wingriders/dex-blockfrost-adapter");
 const adapter = new wr.WingRidersAdapter({
   projectId: "mainnetYOUR_PROJECT_ID",
   lpAddressMap: addressMap,
-  poolType: wr.PoolType.CONSTANT_PRODUCT,
+  poolType: PoolType.CONSTANT_PRODUCT,
 });
 
 /**

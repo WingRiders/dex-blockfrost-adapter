@@ -1,4 +1,4 @@
-import { WingRidersAdapter } from "@wingriders/dex-blockfrost-adapter";
+import { PoolType, WingRidersAdapter } from "@wingriders/dex-blockfrost-adapter";
 import lpAddressMap from "./selectedLpsMap.json";
 
 const DRIP_UNIT = "af2e27f580f7f08e93190a81f72462f153026d06450924726645891b44524950";
@@ -8,6 +8,7 @@ export function setupPrice(priceEl: HTMLInputElement, refreshEl: HTMLButtonEleme
   const adapter = new WingRidersAdapter({
     lpAddressMap,
     projectId: import.meta.env.VITE_BLOCKFROST_PROJECT_ID,
+    poolType: PoolType.CONSTANT_PRODUCT
   });
   const refresh = async () => {
     refreshEl.disabled = true;

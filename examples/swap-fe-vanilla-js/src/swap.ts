@@ -1,5 +1,6 @@
 import { Address, BigNum, BigInt as RBigInt } from "@dcspark/cardano-multiplatform-lib-browser";
 import {
+  PoolType,
   REQUEST_BATCHER_FEE,
   REQUEST_OIL,
   REQUEST_SCRIPT_HASH,
@@ -34,6 +35,7 @@ export async function setupSwap(parent: HTMLDivElement) {
   const adapter = new WingRidersAdapter({
     lpAddressMap,
     projectId: import.meta.env.VITE_BLOCKFROST_PROJECT_ID,
+    poolType: PoolType.CONSTANT_PRODUCT
   });
 
   let lucid: L.Lucid | null = null;

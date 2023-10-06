@@ -15,7 +15,7 @@ npm run dev
 The important part of the code is in `src/price.ts`
 
 ```ts
-import { WingRidersAdapter } from "@wingriders/dex-blockfrost-adapter";
+import { PoolType, WingRidersAdapter } from "@wingriders/dex-blockfrost-adapter";
 import lpAddressMap from "./selectedLpsMap.json";
 
 const DRIP_UNIT = "af2e27f580f7f08e93190a81f72462f153026d06450924726645891b44524950";
@@ -32,6 +32,7 @@ Afterwards fetching the price is as simple as:
 const adapter = new WingRidersAdapter({
   lpAddressMap,
   projectId: import.meta.env.VITE_BLOCKFROST_PROJECT_ID,
+  poolType: PoolType.CONSTANT_PRODUCT
 });
 
 price = await adapter.getAdaPrice(DRIP_UNIT);
